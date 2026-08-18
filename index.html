@@ -1,0 +1,775 @@
+<!doctype html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Sistema de Revisões Espaçadas - Foco ENEM</title>
+        <style>
+            :root {
+                --bg-color: #0f172a;
+                --card-bg: #1e293b;
+                --text-color: #f8fafc;
+                --text-muted: #94a3b8;
+                --accent-color: #3b82f6;
+                --accent-hover: #2563eb;
+                --danger-color: #ef4444;
+                --warning-color: #f59e0b;
+                --success-color: #10b981;
+                --border-color: #334155;
+            }
+
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+                font-family:
+                    system-ui,
+                    -apple-system,
+                    sans-serif;
+            }
+            body {
+                background-color: var(--bg-color);
+                color: var(--text-color);
+                padding: 2rem;
+                max-width: 900px;
+                margin: 0 auto;
+            }
+
+            h1 {
+                text-align: center;
+                font-size: 2rem;
+                margin-bottom: 0.2rem;
+            }
+            .subtitle {
+                text-align: center;
+                color: var(--text-muted);
+                margin-bottom: 1.5rem;
+                font-size: 0.95rem;
+            }
+
+            /* Métricas Rápidas */
+            .stats-bar {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
+            .stat-card {
+                background: var(--card-bg);
+                padding: 1rem;
+                border-radius: 8px;
+                border: 1px solid var(--border-color);
+                text-align: center;
+            }
+            .stat-number {
+                font-size: 1.4rem;
+                font-weight: bold;
+                margin-top: 0.2rem;
+            }
+            .stat-card.overdue .stat-number {
+                color: var(--danger-color);
+            }
+            .stat-card.today .stat-number {
+                color: var(--accent-color);
+            }
+            .stat-card.accuracy .stat-number {
+                color: #a855f7;
+            }
+            .stat-card.total .stat-number {
+                color: var(--success-color);
+            }
+
+            /* Formulário */
+            .form-container {
+                background: var(--card-bg);
+                padding: 1.5rem;
+                border-radius: 12px;
+                margin-bottom: 1.5rem;
+                border: 1px solid var(--border-color);
+            }
+            .form-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 1rem;
+                margin-bottom: 1rem;
+            }
+            input,
+            textarea,
+            select {
+                width: 100%;
+                padding: 0.75rem;
+                background: #0f172a;
+                border: 1px solid var(--border-color);
+                border-radius: 6px;
+                color: var(--text-color);
+                font-size: 0.9rem;
+            }
+            textarea {
+                grid-column: span 3;
+                resize: vertical;
+                min-height: 70px;
+            }
+            button.btn-add {
+                width: 100%;
+                padding: 0.75rem;
+                background: var(--accent-color);
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-weight: bold;
+                cursor: pointer;
+                transition: 0.2s;
+                font-size: 0.95rem;
+            }
+            button.btn-add:hover {
+                background: var(--accent-hover);
+            }
+
+            /* Filtros e Busca */
+            .filter-bar {
+                display: flex;
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
+            .filter-bar input {
+                flex: 2;
+            }
+            .filter-bar select {
+                flex: 1;
+            }
+
+            /* Lista de Assuntos */
+            .list-container {
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .card {
+                background: var(--card-bg);
+                border-radius: 10px;
+                padding: 1.2rem;
+                border-left: 5px solid var(--text-muted);
+                display: flex;
+                flex-direction: column;
+                gap: 0.6rem;
+                transition: all 0.3s ease;
+            }
+
+            /* Estados */
+            .card.future {
+                opacity: 0.5;
+            }
+            .card.today {
+                border-left-color: var(--accent-color);
+                box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
+            }
+            .card.overdue {
+                border-left-color: var(--danger-color);
+                box-shadow: 0 0 10px rgba(239, 68, 68, 0.15);
+            }
+
+            .card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .badges {
+                display: flex;
+                gap: 0.5rem;
+                align-items: center;
+            }
+            .badge-discipline {
+                background: var(--border-color);
+                padding: 0.2rem 0.6rem;
+                border-radius: 12px;
+                font-size: 0.8rem;
+                font-weight: bold;
+            }
+
+            /* Importância ENEM */
+            .badge-priority {
+                padding: 0.2rem 0.5rem;
+                border-radius: 6px;
+                font-size: 0.75rem;
+                font-weight: bold;
+                text-transform: uppercase;
+            }
+            .priority-alta {
+                background: rgba(239, 68, 68, 0.2);
+                color: #f87171;
+                border: 1px solid #ef4444;
+            }
+            .priority-media {
+                background: rgba(245, 158, 11, 0.2);
+                color: #fbbf24;
+                border: 1px solid #f59e0b;
+            }
+            .priority-baixa {
+                background: rgba(16, 185, 129, 0.2);
+                color: #34d399;
+                border: 1px solid #10b981;
+            }
+
+            .topic-title {
+                font-size: 1.15rem;
+                font-weight: 600;
+            }
+            .description {
+                color: #cbd5e1;
+                font-size: 0.9rem;
+                white-space: pre-wrap;
+                line-height: 1.4;
+            }
+
+            /* Métricas do Card */
+            .card-metrics {
+                display: flex;
+                gap: 1.5rem;
+                font-size: 0.85rem;
+                color: var(--text-muted);
+                background: rgba(15, 23, 42, 0.5);
+                padding: 0.5rem;
+                border-radius: 6px;
+            }
+
+            .card-footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-top: 0.2rem;
+                padding-top: 0.5rem;
+                border-top: 1px solid var(--border-color);
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .status-tag {
+                font-weight: bold;
+                font-size: 0.85rem;
+            }
+            .status-tag.overdue {
+                color: var(--danger-color);
+            }
+            .status-tag.today {
+                color: var(--accent-color);
+            }
+
+            .actions {
+                display: flex;
+                gap: 0.4rem;
+            }
+            .btn-action {
+                padding: 0.4rem 0.7rem;
+                border: none;
+                border-radius: 4px;
+                font-weight: bold;
+                cursor: pointer;
+                font-size: 0.8rem;
+                transition: 0.2s;
+            }
+            .btn-complete {
+                background: var(--success-color);
+                color: white;
+            }
+            .btn-complete:hover {
+                opacity: 0.9;
+            }
+            .btn-delete {
+                background: transparent;
+                color: var(--danger-color);
+                border: 1px solid var(--danger-color);
+            }
+            .btn-edit {
+                background: transparent;
+                color: var(--warning-color);
+                border: 1px solid var(--warning-color);
+            }
+
+            /* Modal de Conclusão */
+            .modal-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.7);
+                display: none;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            }
+            .modal {
+                background: var(--card-bg);
+                padding: 1.5rem;
+                border-radius: 12px;
+                width: 100%;
+                max-width: 400px;
+                border: 1px solid var(--border-color);
+            }
+            .modal h3 {
+                margin-bottom: 1rem;
+                font-size: 1.2rem;
+            }
+            .modal-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+                margin-bottom: 1rem;
+            }
+            .modal-actions {
+                display: flex;
+                justify-content: flex-end;
+                gap: 0.5rem;
+            }
+
+            .empty-state {
+                text-align: center;
+                color: var(--text-muted);
+                padding: 2rem;
+                background: var(--card-bg);
+                border-radius: 8px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>🎯 Painel de Revisões ENEM</h1>
+        <p class="subtitle">Repetição Espaçada + Controle de Questões</p>
+
+        <!-- Métricas Rápidas -->
+        <div class="stats-bar">
+            <div class="stat-card overdue">
+                <div class="stat-title">Atrasadas</div>
+                <div class="stat-number" id="statOverdue">0</div>
+            </div>
+            <div class="stat-card today">
+                <div class="stat-title">Para Hoje</div>
+                <div class="stat-number" id="statToday">0</div>
+            </div>
+            <div class="stat-card accuracy">
+                <div class="stat-title">Taxa de Acertos</div>
+                <div class="stat-number" id="statAccuracy">0%</div>
+            </div>
+            <div class="stat-card total">
+                <div class="stat-title">Total Cadastrado</div>
+                <div class="stat-number" id="statTotal">0</div>
+            </div>
+        </div>
+
+        <!-- Formulário de Cadastro -->
+        <div class="form-container">
+            <div class="form-grid">
+                <input
+                    type="text"
+                    id="discipline"
+                    placeholder="Disciplina (ex: Biologia)"
+                    required
+                />
+                <input
+                    type="text"
+                    id="topic"
+                    placeholder="Tópico (ex: Ecologia)"
+                    required
+                />
+                <select id="priority">
+                    <option value="alta">🔥 Alta Incidência ENEM</option>
+                    <option value="media" selected>⚡ Média Incidência</option>
+                    <option value="baixa">☕ Baixa Incidência</option>
+                </select>
+                <textarea
+                    id="description"
+                    placeholder="Resumo rápido, pega-ratões comuns ou fórmulas chave..."
+                ></textarea>
+            </div>
+            <button class="btn-add" id="btnSubmit" onclick="handleSubmit()">
+                Cadastrar Assunto
+            </button>
+        </div>
+
+        <!-- Busca e Filtros -->
+        <div class="filter-bar">
+            <input
+                type="text"
+                id="searchInput"
+                placeholder="🔍 Buscar tópico, resumo ou matéria..."
+                oninput="render()"
+            />
+            <select id="filterSelect" onchange="render()">
+                <option value="all">Todas as disciplinas</option>
+            </select>
+        </div>
+
+        <!-- Lista de Assuntos -->
+        <div class="list-container" id="subjectList"></div>
+
+        <!-- Modal para registrar questões ao concluir revisão -->
+        <div class="modal-overlay" id="reviewModal">
+            <div class="modal">
+                <h3>🎯 Resultado do Treino de Questões</h3>
+                <p
+                    style="
+                        font-size: 0.85rem;
+                        color: var(--text-muted);
+                        margin-bottom: 1rem;
+                    "
+                >
+                    Quantas questões você resolveu sobre este tópico nesta
+                    revisão?
+                </p>
+                <div class="modal-grid">
+                    <div>
+                        <label style="font-size: 0.8rem">Questões Feitas</label>
+                        <input
+                            type="number"
+                            id="modalDone"
+                            value="10"
+                            min="0"
+                        />
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem">Acertos</label>
+                        <input
+                            type="number"
+                            id="modalCorrect"
+                            value="8"
+                            min="0"
+                        />
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button
+                        class="btn-action btn-delete"
+                        onclick="closeModal()"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        class="btn-action btn-complete"
+                        onclick="confirmReview()"
+                    >
+                        Salvar Revisão
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            const INTERVALS = [1, 7, 15, 30, 60];
+            let subjects =
+                JSON.parse(localStorage.getItem("my_enem_reviews")) || [];
+            let editingId = null;
+            let reviewingId = null;
+
+            function save() {
+                localStorage.setItem(
+                    "my_enem_reviews",
+                    JSON.stringify(subjects),
+                );
+                render();
+            }
+
+            function handleSubmit() {
+                if (editingId !== null) updateSubject();
+                else addSubject();
+            }
+
+            function addSubject() {
+                const discipline = document
+                    .getElementById("discipline")
+                    .value.trim();
+                const topic = document.getElementById("topic").value.trim();
+                const priority = document.getElementById("priority").value;
+                const description = document
+                    .getElementById("description")
+                    .value.trim();
+
+                if (!discipline || !topic) {
+                    alert("Preencha ao menos a Disciplina e o Tópico!");
+                    return;
+                }
+
+                const nextReview = new Date();
+                nextReview.setDate(nextReview.getDate() + 1);
+
+                subjects.push({
+                    id: Date.now(),
+                    discipline,
+                    topic,
+                    priority,
+                    description,
+                    reviewCount: 0,
+                    questionsDone: 0,
+                    questionsCorrect: 0,
+                    nextReviewDate: nextReview.toISOString().split("T")[0],
+                });
+
+                clearForm();
+                save();
+            }
+
+            function editSubject(id) {
+                const item = subjects.find((s) => s.id === id);
+                if (!item) return;
+
+                document.getElementById("discipline").value = item.discipline;
+                document.getElementById("topic").value = item.topic;
+                document.getElementById("priority").value =
+                    item.priority || "media";
+                document.getElementById("description").value = item.description;
+
+                editingId = id;
+                document.getElementById("btnSubmit").innerText =
+                    "Salvar Alterações";
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+
+            function updateSubject() {
+                const discipline = document
+                    .getElementById("discipline")
+                    .value.trim();
+                const topic = document.getElementById("topic").value.trim();
+                const priority = document.getElementById("priority").value;
+                const description = document
+                    .getElementById("description")
+                    .value.trim();
+
+                subjects = subjects.map((item) => {
+                    if (item.id === editingId) {
+                        return {
+                            ...item,
+                            discipline,
+                            topic,
+                            priority,
+                            description,
+                        };
+                    }
+                    return item;
+                });
+
+                clearForm();
+                save();
+            }
+
+            function clearForm() {
+                document.getElementById("discipline").value = "";
+                document.getElementById("topic").value = "";
+                document.getElementById("description").value = "";
+                document.getElementById("priority").value = "media";
+                editingId = null;
+                document.getElementById("btnSubmit").innerText =
+                    "Cadastrar Assunto";
+            }
+
+            /* Lógica do Modal de Questões */
+            function openReviewModal(id) {
+                reviewingId = id;
+                document.getElementById("reviewModal").style.display = "flex";
+            }
+
+            function closeModal() {
+                reviewingId = null;
+                document.getElementById("reviewModal").style.display = "none";
+            }
+
+            function confirmReview() {
+                const done =
+                    parseInt(document.getElementById("modalDone").value) || 0;
+                const correct =
+                    parseInt(document.getElementById("modalCorrect").value) ||
+                    0;
+
+                if (correct > done) {
+                    alert(
+                        "O número de acertos não pode ser maior que o de questões feitas!",
+                    );
+                    return;
+                }
+
+                subjects = subjects.map((item) => {
+                    if (item.id === reviewingId) {
+                        const nextCount = item.reviewCount + 1;
+                        const daysToAdd =
+                            INTERVALS[item.reviewCount] ||
+                            60 * (nextCount - INTERVALS.length + 1);
+
+                        const nextDate = new Date();
+                        nextDate.setDate(nextDate.getDate() + daysToAdd);
+
+                        return {
+                            ...item,
+                            reviewCount: nextCount,
+                            questionsDone: (item.questionsDone || 0) + done,
+                            questionsCorrect:
+                                (item.questionsCorrect || 0) + correct,
+                            nextReviewDate: nextDate
+                                .toISOString()
+                                .split("T")[0],
+                        };
+                    }
+                    return item;
+                });
+
+                closeModal();
+                save();
+            }
+
+            function deleteSubject(id) {
+                if (confirm("Tem certeza que deseja apagar este assunto?")) {
+                    subjects = subjects.filter((item) => item.id !== id);
+                    save();
+                }
+            }
+
+            function updateFilterOptions() {
+                const select = document.getElementById("filterSelect");
+                const currentValue = select.value;
+                const disciplines = [
+                    ...new Set(subjects.map((s) => s.discipline)),
+                ];
+
+                select.innerHTML =
+                    '<option value="all">Todas as disciplinas</option>';
+                disciplines.forEach((d) => {
+                    const option = document.createElement("option");
+                    option.value = d;
+                    option.textContent = d;
+                    select.appendChild(option);
+                });
+                select.value = currentValue;
+            }
+
+            function updateStats(todayStr) {
+                let overdue = 0;
+                let today = 0;
+                let totalDone = 0;
+                let totalCorrect = 0;
+
+                subjects.forEach((item) => {
+                    if (item.nextReviewDate < todayStr) overdue++;
+                    else if (item.nextReviewDate === todayStr) today++;
+
+                    totalDone += item.questionsDone || 0;
+                    totalCorrect += item.questionsCorrect || 0;
+                });
+
+                const accuracy =
+                    totalDone > 0
+                        ? Math.round((totalCorrect / totalDone) * 100)
+                        : 0;
+
+                document.getElementById("statOverdue").innerText = overdue;
+                document.getElementById("statToday").innerText = today;
+                document.getElementById("statAccuracy").innerText =
+                    `${accuracy}%`;
+                document.getElementById("statTotal").innerText =
+                    subjects.length;
+            }
+
+            function render() {
+                const container = document.getElementById("subjectList");
+                container.innerHTML = "";
+
+                const todayStr = new Date().toISOString().split("T")[0];
+                const searchTerm = document
+                    .getElementById("searchInput")
+                    .value.toLowerCase();
+                const selectedDiscipline =
+                    document.getElementById("filterSelect").value;
+
+                updateFilterOptions();
+                updateStats(todayStr);
+
+                let filtered = subjects.filter((item) => {
+                    const matchesSearch =
+                        item.topic.toLowerCase().includes(searchTerm) ||
+                        item.discipline.toLowerCase().includes(searchTerm) ||
+                        item.description.toLowerCase().includes(searchTerm);
+                    const matchesDiscipline =
+                        selectedDiscipline === "all" ||
+                        item.discipline === selectedDiscipline;
+                    return matchesSearch && matchesDiscipline;
+                });
+
+                if (filtered.length === 0) {
+                    container.innerHTML = `<div class="empty-state">Nenhum assunto encontrado.</div>`;
+                    return;
+                }
+
+                // Ordenar por data da revisão
+                filtered.sort(
+                    (a, b) =>
+                        new Date(a.nextReviewDate) - new Date(b.nextReviewDate),
+                );
+
+                filtered.forEach((item) => {
+                    const isToday = item.nextReviewDate === todayStr;
+                    const isOverdue = item.nextReviewDate < todayStr;
+
+                    let statusClass = "future";
+                    let statusText = `Próxima revisão: ${formatDate(item.nextReviewDate)}`;
+
+                    if (isOverdue) {
+                        statusClass = "overdue";
+                        statusText = `🚨 ATRASADO (${formatDate(item.nextReviewDate)})`;
+                    } else if (isToday) {
+                        statusClass = "today";
+                        statusText = `⭐ DIA DE REVISAR!`;
+                    }
+
+                    const done = item.questionsDone || 0;
+                    const correct = item.questionsCorrect || 0;
+                    const accRate =
+                        done > 0 ? Math.round((correct / done) * 100) : 0;
+
+                    const priorityMap = {
+                        alta: {
+                            label: "🔥 Alta Incidência",
+                            class: "priority-alta",
+                        },
+                        media: { label: "⚡ Média", class: "priority-media" },
+                        baixa: { label: "☕ Baixa", class: "priority-baixa" },
+                    };
+
+                    const priorityObj = priorityMap[item.priority || "media"];
+
+                    const card = document.createElement("div");
+                    card.className = `card ${statusClass}`;
+
+                    card.innerHTML = `
+          <div class="card-header">
+            <div class="badges">
+              <span class="badge-discipline">${item.discipline}</span>
+              <span class="badge-priority ${priorityObj.class}">${priorityObj.label}</span>
+            </div>
+            <span class="status-tag ${statusClass}">${statusText}</span>
+          </div>
+          <div class="topic-title">${item.topic}</div>
+          ${item.description ? `<div class="description">${item.description}</div>` : ""}
+          
+          <div class="card-metrics">
+            <span>🔄 Revisões: <strong>${item.reviewCount}</strong></span>
+            <span>🎯 Questões: <strong>${correct}/${done}</strong> (${accRate}% acertos)</span>
+          </div>
+
+          <div class="card-footer">
+            <div class="actions">
+              <button class="btn-action btn-edit" onclick="editSubject(${item.id})">✏️ Editar</button>
+              <button class="btn-action btn-complete" onclick="openReviewModal(${item.id})">Concluir Revisão</button>
+              <button class="btn-action btn-delete" onclick="deleteSubject(${item.id})">🗑️</button>
+            </div>
+          </div>
+        `;
+
+                    container.appendChild(card);
+                });
+            }
+
+            function formatDate(dateStr) {
+                const [year, month, day] = dateStr.split("-");
+                return `${day}/${month}/${year}`;
+            }
+
+            render();
+        </script>
+    </body>
+</html>
